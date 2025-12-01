@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use core::panic;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -10,7 +11,10 @@ struct Task {
     id: u32,
     task: String,
     description: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
+
 fn store_json(file_path: &str, data: &str) {
     let path = Path::new(file_path);
     let display = path.display();
@@ -45,6 +49,8 @@ fn add_task(task: &str, description: &str) {
         id: 1,
         task: task.to_owned(),
         description: description.to_owned(),
+        created_at: Utc::now(),
+        updated_at:Utc::now()
     }];
     let mut old_task_list = load_json("./task.json");
     old_task_list.append(&mut task_value);
