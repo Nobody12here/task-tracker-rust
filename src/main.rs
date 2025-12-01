@@ -48,7 +48,7 @@ fn load_json(file_path: &str) -> Vec<Task> {
 fn add_task(task: &str, description: &str) {
     let mut old_task_list = load_json(FILE_PATH);
     old_task_list.push(Task {
-        id: 1,
+        id: (old_task_list.len() + 1) as u32 ,
         task: task.to_owned(),
         description: description.to_owned(),
         created_at: Utc::now(),
