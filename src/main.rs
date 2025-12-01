@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+const FILE_PATH: &str = "./task.json";
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Task {
     id: u32,
@@ -44,25 +46,22 @@ fn load_json(file_path: &str) -> Vec<Task> {
     task_list
 }
 fn add_task(task: &str, description: &str) {
-    //should first load the previous tasks and then append to that vec
-    let mut task_value = vec![Task {
+    let mut old_task_list = load_json(FILE_PATH);
+    old_task_list.push(Task {
         id: 1,
         task: task.to_owned(),
         description: description.to_owned(),
         created_at: Utc::now(),
-        updated_at:Utc::now()
-    }];
-    let mut old_task_list = load_json("./task.json");
-    old_task_list.append(&mut task_value);
-    println!("Old json file {:?} ", old_task_list);
-    let json_string = match serde_json::to_string(&old_task_list) {
+        updated_at: Utc::now(),
+    });
+    let json_string = match serde_json::to_string_pretty(&old_task_list) {
         Ok(result) => result,
         Err(error) => panic!(
             "Something went wron while parsing struct to string {}",
             error
         ),
     };
-    store_json("./task.json", &json_string);
+    store_json(FILE_PATH, &json_string);
 }
 
 fn main() {
