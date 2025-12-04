@@ -29,10 +29,7 @@ fn delete_task(task_id: u32) -> Result<(), std::io::Error> {
     let mut tasks = load_json(FILE_PATH)?;
     tasks.retain(|x: &Task| x.id != task_id);
     println!("{:?}", tasks);
-    store_json(
-        FILE_PATH,
-        &serde_json::to_string_pretty(&tasks)?,
-    )?;
+    store_json(FILE_PATH, &serde_json::to_string_pretty(&tasks)?)?;
     Ok(())
 }
 fn show_task_by_id(task_id: u32) -> Result<Task, String> {
@@ -73,6 +70,29 @@ fn load_json(file_path: &str) -> Result<Vec<Task>, std::io::Error> {
 
     Ok(task_list)
 }
+fn update_task(
+    task_id: u32,
+    updated_task: Option<&str>,
+    updated_description: Option<&str>,
+) -> Result<(), String> {
+    let mut task_list = load_json(FILE_PATH).map_err(|e| e.to_string())?;
+    if let Some(task) = task_list.iter_mut().find(|x| x.id == task_id) {
+        if let Some(updated_description) = updated_description {
+            task.description = updated_description.to_owned()
+        }
+        if let Some(updated_task) = updated_task {
+            task.task = updated_task.to_owned()
+        }
+    } else {
+        return Err(format!("No task found with {} task id", task_id));
+    }
+    store_json(
+        FILE_PATH,
+        &serde_json::to_string_pretty(&task_list).expect("msg"),
+    )
+    .map_err(|err| err.to_string())?;
+    Ok(())
+}
 fn add_task(task: &str, description: &str) -> Result<(), std::io::Error> {
     let mut old_task_list = load_json(FILE_PATH)?;
     old_task_list.push(Task {
@@ -109,7 +129,16 @@ fn main() {
             let description: &String = args.get(3).expect("description not provided");
             add_task(task, description); // the deref coercsion will auto convert &String to &str
         }
-        "update" => println!("Update"),
+        "update" => {
+            let id: u32 = args
+                .get(2)
+                .expect("No task id provided")
+                .parse()
+                .expect("error while parsing string to int.");
+            let task = args.get(3).map(|s| s.as_str());
+            let description = args.get(4).map(|s| s.as_str());
+            update_task(id, task, description);
+        }
         "delete" => {
             let id = args.get(2).expect("You did not provided the task id");
             delete_task(id.parse().unwrap());
