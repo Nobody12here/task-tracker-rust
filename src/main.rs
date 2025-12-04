@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use core::panic;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
@@ -26,23 +25,24 @@ impl Task {
         println!("Updated at: {}", self.updated_at.date_naive());
     }
 }
-fn delete_task(task_id: u32) {
-    let mut tasks = load_json(FILE_PATH);
+fn delete_task(task_id: u32) -> Result<(), std::io::Error> {
+    let mut tasks = load_json(FILE_PATH)?;
     tasks.retain(|x: &Task| x.id != task_id);
-    println!("{:?}",tasks);
+    println!("{:?}", tasks);
     store_json(
         FILE_PATH,
-        &serde_json::to_string_pretty(&tasks).expect("Error while parsing struct to json!"),
-    );
+        &serde_json::to_string_pretty(&tasks)?,
+    )?;
+    Ok(())
 }
 fn show_task_by_id(task_id: u32) -> Result<Task, String> {
-    let tasks = load_json(FILE_PATH);
+    let tasks = load_json(FILE_PATH).unwrap();
     for task in tasks {
         if task.id == task_id {
             return Ok(task);
         }
     }
-    Err("Task not found".to_owned())
+    Err("No tasks found for this".to_owned())
 
     // let json_string = match serde_json::to_string_pretty(&old_tasks) {
     //     Ok(data) => data,
@@ -50,25 +50,20 @@ fn show_task_by_id(task_id: u32) -> Result<Task, String> {
     // };
     // store_json(FILE_PATH, &json_string);
 }
-fn store_json(file_path: &str, data: &str) {
+fn store_json(file_path: &str, data: &str) -> Result<(), std::io::Error> {
     let path = Path::new(file_path);
-    let display = path.display();
-    let mut file = match File::options().create(true).write(true).truncate(true).open(path) {
-        Err(error) => panic!("Error occured while creating file {} :: {}", display, error),
-        Ok(file) => file,
-    };
+    let mut file = File::options()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(path)?;
 
-    match file.write_all(data.as_bytes()) {
-        Err(error) => panic!("Something went wrong while writing file {}", error),
-        Ok(_) => println!("Sucessfully written to {}", display),
-    }
+    file.write_all(data.as_bytes())?;
+    Ok(())
 }
-fn load_json(file_path: &str) -> Vec<Task> {
+fn load_json(file_path: &str) -> Result<Vec<Task>, std::io::Error> {
     let path = Path::new(file_path);
-    let file = match File::options().read(true).open(path) {
-        Err(error) => panic!("Something went wrong while reading json file {} ", error),
-        Ok(data) => data,
-    };
+    let file = File::options().read(true).open(path)?;
     let task_list: Vec<Task> = match serde_json::from_reader(file) {
         Ok(data) => data,
         _ => {
@@ -76,10 +71,10 @@ fn load_json(file_path: &str) -> Vec<Task> {
         }
     };
 
-    task_list
+    Ok(task_list)
 }
-fn add_task(task: &str, description: &str) {
-    let mut old_task_list = load_json(FILE_PATH);
+fn add_task(task: &str, description: &str) -> Result<(), std::io::Error> {
+    let mut old_task_list = load_json(FILE_PATH)?;
     old_task_list.push(Task {
         id: (old_task_list.len() + 1) as u32,
         task: task.to_owned(),
@@ -94,13 +89,15 @@ fn add_task(task: &str, description: &str) {
             error
         ),
     };
-    store_json(FILE_PATH, &json_string);
+    store_json(FILE_PATH, &json_string)?;
+    Ok(())
 }
-fn show_all_tasks() {
-    let tasks_list = load_json(FILE_PATH);
+fn show_all_tasks() -> Result<(), std::io::Error> {
+    let tasks_list = load_json(FILE_PATH)?;
     for task in tasks_list {
         task.print_details();
     }
+    Ok(())
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -110,14 +107,16 @@ fn main() {
         "add" => {
             let task = args.get(2).expect("Task not provided");
             let description: &String = args.get(3).expect("description not provided");
-            add_task(task, description) // the deref coercsion will auto convert &String to &str
+            add_task(task, description); // the deref coercsion will auto convert &String to &str
         }
         "update" => println!("Update"),
         "delete" => {
             let id = args.get(2).expect("You did not provided the task id");
             delete_task(id.parse().unwrap());
         }
-        "show" => show_all_tasks(),
+        "show" => {
+            show_all_tasks();
+        }
         "show_id" => {
             let id = args.get(2).expect("You did not provided the task id");
             let task =
