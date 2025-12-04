@@ -26,6 +26,15 @@ impl Task {
         println!("Updated at: {}", self.updated_at.date_naive());
     }
 }
+fn delete_task(task_id: u32) {
+    let mut tasks = load_json(FILE_PATH);
+    tasks.retain(|x: &Task| x.id != task_id);
+    println!("{:?}",tasks);
+    store_json(
+        FILE_PATH,
+        &serde_json::to_string_pretty(&tasks).expect("Error while parsing struct to json!"),
+    );
+}
 fn show_task_by_id(task_id: u32) -> Result<Task, String> {
     let tasks = load_json(FILE_PATH);
     for task in tasks {
@@ -44,7 +53,7 @@ fn show_task_by_id(task_id: u32) -> Result<Task, String> {
 fn store_json(file_path: &str, data: &str) {
     let path = Path::new(file_path);
     let display = path.display();
-    let mut file = match File::options().write(true).open(path) {
+    let mut file = match File::options().create(true).write(true).truncate(true).open(path) {
         Err(error) => panic!("Error occured while creating file {} :: {}", display, error),
         Ok(file) => file,
     };
@@ -104,7 +113,10 @@ fn main() {
             add_task(task, description) // the deref coercsion will auto convert &String to &str
         }
         "update" => println!("Update"),
-        "delete" => println!("delete"),
+        "delete" => {
+            let id = args.get(2).expect("You did not provided the task id");
+            delete_task(id.parse().unwrap());
+        }
         "show" => show_all_tasks(),
         "show_id" => {
             let id = args.get(2).expect("You did not provided the task id");
