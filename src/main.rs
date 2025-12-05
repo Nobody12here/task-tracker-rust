@@ -40,12 +40,6 @@ fn show_task_by_id(task_id: u32) -> Result<Task, String> {
         }
     }
     Err("No tasks found for this".to_owned())
-
-    // let json_string = match serde_json::to_string_pretty(&old_tasks) {
-    //     Ok(data) => data,
-    //     Err(err) => panic!("Error occured {}",err)
-    // };
-    // store_json(FILE_PATH, &json_string);
 }
 fn store_json(file_path: &str, data: &str) -> Result<(), std::io::Error> {
     let path = Path::new(file_path);
